@@ -417,7 +417,7 @@ def prolic_prolics():
     global NOME_FORNECEDOR
 
     consulta = fetchallmap(f"""select
-                                    distinct *
+                                    distinct query.*, rtrim(t614.dcto01) insmf
                                 from
                                     (
                                     select
@@ -430,8 +430,7 @@ def prolic_prolics():
                                             else 'A'
                                         end status,
                                         'N' usa_preferencia,
-                                        null nome_ant,
-                                        cast(codfor as varchar) insmf
+                                        null nome_ant
                                     from
                                         mat.MCT70100
                                 union all
@@ -442,8 +441,7 @@ def prolic_prolics():
                                         cast(codfor as integer) codif,
                                         'A' status,
                                         'N' usa_preferencia,
-                                        null nome_ant,
-                                       cast(codfor as varchar) insmf
+                                        null nome_ant
                                     from
                                         mat.mct90400
                                 union all
@@ -457,8 +455,7 @@ def prolic_prolics():
                                             when direitoPreferencia = 1 then 'S'
                                             else 'N'
                                         END usa_preferencia,
-                                        substring(razao_social, 0, 40) nome_ant,
-                                        SUBSTRING(documento, 0, 19) insmf
+                                        substring(razao_social, 0, 40) nome_ant
                                     from
                                         mat.MCT81800 m
                                     where
@@ -474,15 +471,19 @@ def prolic_prolics():
                                             when direitoPreferencia = 1 then 'S'
                                             else 'N'
                                         END usa_preferencia,
-                                        substring(razao_social, 0, 40) nome_ant,
-                                        SUBSTRING(documento, 0, 19) insmf
+                                        substring(razao_social, 0, 40) nome_ant
                                     from
                                         mat.MCT81800 m
                                     where
                                         codfor is not null
                                         and codfor <> '') as query
+                                left join mat.MXT60100 t601 on
+                                    t601.codfor = [codif]
+                                left join mat.MXT61400 t614 on
+                                    t614.codnom = t601.codnom
                                 where
-                                    ano >= {ANO-5} and status = 'A'""")
+                                    ano >= {ANO-5}
+                                    and status = 'A'""")
 
     insert_prolic = cur_fdb.prep('insert into prolic (codif, nome, status, numlic) values (?,?,?,?)')
     insert_prolics = cur_fdb.prep('insert into prolics (sessao, codif, status, representante, numlic, usa_preferencia, codif_ant) values (?,?,?,?,?,?,?)')
@@ -544,7 +545,7 @@ def cadpro_proposta():
     commit()
 
     ###### SELECT DA PROPOSTA COM ITENS DESAGRUPADOS
-    consulta = fetchallmap(f"""select DISTINCT * from (select
+    consulta = fetchallmap(f"""select distinct a.*, isnull(rtrim(t614.dcto01),a.[codif]) insmf from (select DISTINCT * from (select
                                     1 sessao,
                                     codfor codif,
                                     --ROW_NUMBER() over (partition by isnull(codfor,insmf), convit order by nuitem) item,
@@ -555,7 +556,6 @@ def cadpro_proposta():
                                     case when venc is null then 'D' else 'C' end as status,
                                     venc subem,
                                     rtrim(marca) marca,
-                                    rtrim(isnull(insmf,codfor)) insmf,
                                     right('00000000'+cast(nrolote as varchar),8) lotelic,
                                     sigla sigla_ant,
                                     convit numpro,
@@ -693,7 +693,6 @@ def cadpro_proposta():
                                     case when isnull(class,venc) is null then 'D' else 'C' end as status,
                                     venc subem,
                                     rtrim(marca) marca,
-                                    rtrim(isnull(insmf,codfor)) insmf,
                                     right('00000000'+cast(nrolote as varchar),8) lotelic,
                                     sigla sigla_ant,
                                     convit numpro,
@@ -806,7 +805,11 @@ def cadpro_proposta():
                                         c905.modelo,
                                         c934.nrolote,
                                         c934.descricao,
-                                        c072.nrcpfcnpj) as query) as rn
+                                        c072.nrcpfcnpj) as query) as rn) as a
+                                        left join mat.MXT60100 t601 on
+                                    	t601.codfor = [codif]
+		                                left join mat.MXT61400 t614 on
+		                                t614.codnom = t601.codnom
                                         order by [subem] desc""")
 
     insert = cur_fdb.prep('insert into cadpro_proposta (codif, sessao, numlic, itemp, item, quan1, vaun1, vato1, status, marca, subem) values (?,?,?,?,?,?,?,?,?,?,?)')
@@ -1150,3 +1153,22 @@ def fase_v():
         mascmod = (f"{processo[0]}-{processo[-1]}").replace(' ','')
         cur_fdb.execute(f"update cadlic set codtce = {row['codtce']}, enviotce = 'S', valor = {row['valor']}  where mascmod = '{mascmod}'")
     commit()
+
+def vinculacao_contratos():
+    updates = []
+    consulta = fetchallmap(f'''select
+                                c.idContrato ,
+                                cast(g.sigla as varchar) +'-'+ cast(g.convit as varchar)+'/'+ cast(g.anoc as varchar) as mascmod
+                            from
+                                mat.MDT00100 c
+                            join mat.mct80200 g on
+                                g.IdAgrupamento = c.idAgrupamento
+                            where g.anoc >= {ANO-5}''')
+    
+    for row in tqdm(consulta, desc='Inserindo Vinculação de Contratos...'):
+        cur_fdb.execute(f"update contratos a set a.proclic = (select b.proclic from cadlic b where b.mascmod='{row['mascmod']}') where a.idcontratoam = {row['idContrato']}")
+        updates.append(f"update contratos a set a.proclic = (select b.proclic from cadlic b where b.mascmod='{row['mascmod']}') where a.idcontratoam = {row['idContrato']};")
+        commit()
+    cur_fdb.execute("UPDATE contratos a SET a.numlic = (SELECT b.nlicitacao FROM CADLICITACAO b WHERE a.proclic = b.proclic) WHERE a.proclic IS NOT NULL")
+    commit()
+    # print(updates)

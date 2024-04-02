@@ -27,6 +27,7 @@ def main():
     # compras.licitacao.aditamento()
     # compras.licitacao.cadpro_saldo_ant()
     compras.licitacao.fase_v()
+    compras.licitacao.vinculacao_contratos()
 
 #     compras.pedidos.cabecalho()
 #     compras.pedidos.itens()
@@ -56,6 +57,9 @@ def main():
 #     patrimonio.movimentacoes.aquisicao()
 #     patrimonio.movimentacoes.ajuste()
 #     patrimonio.movimentacoes.baixas()
+    
+##### AJUSTES #####
+    tools.aditivos_contratos()
 
 if __name__ == '__main__':
     main()

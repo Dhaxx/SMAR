@@ -222,3 +222,97 @@ def plano_contas():
     for row in cur_fdb.fetchallmap():
         hash_map[row['titco']] = row['balco']
     return hash_map
+    
+def lista_contratos():
+    hash_map = {}
+
+    cur_fdb.execute('select idcontratoam, codigo from contratos')
+
+    for row in cur_fdb.fetchallmap():
+        hash_map[row['idcontratoam']] = row['codigo']
+    return hash_map
+
+def aditivos_contratos():
+    cur_fdb.execute("delete from contratosaditamento")
+    contratos = lista_contratos()
+    cmds = []
+    
+    consulta = fetchallmap("""select
+                                    cast(idContrato as varchar) idContrato,
+                                    RIGHT('0000' + numeroAlteracao,
+                                    4)+ '/' + SUBSTRING(cast(anoAlteracao as varchar), 3, 4) termo,
+                                    dataInicioVigencia dtlan,
+                                    justificativaAlteracao descricao,
+                                    dataTerminoVigencia dataencerramento,
+                                    'OUTROS' veic_publicacao,
+                                    null tipo_tce,
+                                    valorAditivo valor,
+                                    case when valorAditivo > 0 then 'Acréscimo' else 'Decréscimo' end tipohist,
+                                    dataAssinatura dtinsc
+                                from
+                                    mat.MDT03000 m
+                                """)
+
+    insert = cur_fdb.prep("""INSERT
+                                INTO
+                                contratosaditamento(contrato,
+                                termo,
+                                dtlan,
+                                descricao,
+                                dataencerramento,
+                                dtpublicacao,
+                                veic_publicacao,
+                                tipo_tce,
+                                valor,
+                                tipohist,
+                                datainsc,
+                                dataabertura,
+                                dtautoriz,
+                                possuiautoriztermo,
+                                codigo)
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""")
+    
+    codigo = 0
+
+    for row in tqdm(consulta, desc='Inserindo Aditivos de Contrato'):
+        contrato = contratos.get(row['idContrato'], None)
+        if contrato:
+            termo = row['termo']
+            dtlan = row['dtlan']
+            descricao = row['descricao']
+            dataencerramento = row['dataencerramento']
+            dtpublicacao = row['dtlan']
+            veic_publicacao = row['veic_publicacao']
+            tipo_tce = row['tipo_tce']
+            valor = row['valor']
+            tipohist = row['tipohist']
+            datainsc = row['dtinsc']
+            dataabertura = row['dtlan']
+            dtautoriz = row['dtlan']
+            possuiautoriztermo = None
+            codigo += 1
+            cur_fdb.execute(insert, (contrato, termo, dtlan, descricao, dataencerramento, dtpublicacao, veic_publicacao, tipo_tce, valor, tipohist, 
+                                    datainsc, dataabertura, dtautoriz, possuiautoriztermo, codigo))
+            cmds.append(f"""INSERT
+                                INTO
+                                contratosaditamento(contrato,
+                                termo,
+                                dtlan,
+                                descricao,
+                                dataencerramento,
+                                dtpublicacao,
+                                veic_publicacao,
+                                tipo_tce,
+                                valor,
+                                tipohist,
+                                datainsc,
+                                dataabertura,
+                                dtautoriz,
+                                possuiautoriztermo,
+                                codigo)
+                            VALUES ({contrato, termo, dtlan, descricao, dataencerramento, dtpublicacao, veic_publicacao, tipo_tce, valor, tipohist, 
+                                    datainsc, dataabertura, dtautoriz, possuiautoriztermo, codigo});""")
+    commit()
+    with open('output.txt', 'w') as f:
+        for cmd in cmds:
+            f.write("%s\n" % cmd)
