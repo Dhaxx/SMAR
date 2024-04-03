@@ -1136,7 +1136,7 @@ def cadpro_saldo_ant():
         except:
             continue
 
-def fase_v():
+def fase_iv():
     consulta = fetchallmap(f"""
                             SELECT 
                                 Licitacao,

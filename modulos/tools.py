@@ -241,7 +241,7 @@ def aditivos_contratos():
                                     cast(idContrato as varchar) idContrato,
                                     RIGHT('0000' + numeroAlteracao,
                                     4)+ '/' + SUBSTRING(cast(anoAlteracao as varchar), 3, 4) termo,
-                                    dataInicioVigencia dtlan,
+                                    isnull(dataInicioVigencia, dataAssinatura) dtlan,
                                     justificativaAlteracao descricao,
                                     dataTerminoVigencia dataencerramento,
                                     'OUTROS' veic_publicacao,

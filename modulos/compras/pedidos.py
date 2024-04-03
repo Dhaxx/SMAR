@@ -20,7 +20,7 @@ def cabecalho():
                                                  empresa, numlic, af_ant, nafano_ant, codgrupo_ant, anogrupo_ant, numint_ant)
                          values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""")
     
-    consulta = fetchallmap(f"""select
+    consulta = fetchallmap(f"""select distinct
                                     RIGHT('00000' + cast(b.numint AS varchar),
                                     5)+ '/' + SUBSTRING(b.anoint, 3, 2) numped,
                                     RIGHT('00000' + cast(b.numint as varchar),
@@ -77,24 +77,28 @@ def itens():
     insert = cur_fdb.prep('insert into icadped (numped, item, cadpro, qtd, prcunt, prctot, codccusto, id_cadped) values (?,?,?,?,?,?,?,?)')
 
     consulta = fetchallmap(f"""select
-                                        RIGHT('00000' + cast(b.numint AS varchar),
-                                        5)+ '/' + SUBSTRING(b.anoint, 3, 2) numped,
-                                        b.nuitem,
-                                        b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat cadpro,
-                                        b.qtde,
-                                        b.preco,
-                                        b.total,
-                                        c.UnidOrc,
-                                        a.id
-                                    from
-                                        mat.MCT67000 a
-                                    join mat.MCT66800 b on
-                                        a.numint = b.numint
-                                        and a.anoint = b.anoint
-                                    left join mat.UnidOrcamentariaW c on
-                                        a.idNivel5 = c.idNivel5
-                                    where
-                                        a.anoc = 2024""")
+                                    RIGHT('00000' + cast(b.numint AS varchar),
+                                    5)+ '/' + SUBSTRING(b.anoint, 3, 2) numped,
+                                    isnull(b.nuitem,
+                                    ROW_NUMBER() over(partition by b.numint,
+                                    b.anoint
+                                order by
+                                    b.numint)) nuitem,
+                                    b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat cadpro,
+                                    b.qtde,
+                                    b.preco,
+                                    b.total,
+                                    c.UnidOrc,
+                                    a.id
+                                from
+                                    mat.MCT67000 a
+                                join mat.MCT66800 b on
+                                    a.numint = b.numint
+                                    and a.anoint = b.anoint
+                                left join mat.UnidOrcamentariaW c on
+                                    a.idNivel5 = c.idNivel5
+                                where
+                                    a.anoc = {ANO}""")
     
     for row in tqdm(consulta, desc='Pedidos - Cadastrando Itens'):
         numped = row['numped']
