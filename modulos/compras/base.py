@@ -11,7 +11,7 @@ def cadunimedida():
 
     cur_sql.execute("""
         SELECT upsigl,descricao,upcod FROM 
-        (SELECT upsigl, rtrim(updesc) as descricao, upcod, ROW_NUMBER() OVER(PARTITION BY upsigl ORDER BY UPSIGL) SEQUENCIA FROM smar_compras.mat.MCT67900) UNID
+        (SELECT upsigl, rtrim(updesc) as descricao, upcod, ROW_NUMBER() OVER(PARTITION BY upsigl ORDER BY UPSIGL) SEQUENCIA FROM mat.MCT67900) UNID
         WHERE SEQUENCIA = 1
     """)  # Consulta banco de Origem
 
@@ -45,7 +45,7 @@ def grupo_e_subgrupo():
                             grupo as grupo_ant,
                             subgrp as subgrupo_ant
                         from
-                            smar_compras.mat.mxt63300""")
+                            mat.mxt63300""")
 
     insert_grupo = cur_fdb.prep(
         "INSERT INTO CADGRUPO(grupo, nome, ocultar, grupo_ant, estrutura_ant) VALUES(?,?,?,?,?)")
