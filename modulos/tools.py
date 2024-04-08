@@ -316,3 +316,133 @@ def aditivos_contratos():
     with open('output.txt', 'w') as f:
         for cmd in cmds:
             f.write("%s\n" % cmd)
+
+def insere_cadpro_cadped():
+    filtro = []
+    
+    for row in filtro:
+        cur_fdb.execute(f"""INSERT
+                                INTO
+                                cadpro (codif,
+                                cadpro,
+                                quan1,
+                                vaun1,
+                                vato1,
+                                subem,
+                                status,
+                                item,
+                                itemorcped,
+                                codccusto,
+                                numlic,
+                                ult_sessao,
+                                itemp,
+                                qtdadt,
+                                qtdped,
+                                vaunadt,
+                                vatoadt,
+                                tpcontrole_saldo)
+                                SELECT
+                                c.CODIF,
+                                i.CADPRO,
+                                SUM(i.QTD) AS qtd,
+                                i.PRCUNT,
+                                SUM(i.PRCTOT) AS total_price,
+                                1 AS subem,
+                                'C' AS classificado,
+                                i.item,
+                                i.item,
+                                i.CODCCUSTO,
+                                c.NUMLIC,
+                                1 AS ult_sessao,
+                                i.ITEM,
+                                i.QTD,
+                                SUM(i.QTD) AS qtd_sum,
+                                i.PRCUNT,
+                                SUM(i.PRCTOT) AS total_price_sum,
+                                'Q' AS tpcontrole_saldo
+                            FROM
+                                ICADPED i
+                            JOIN
+                                cadped c ON
+                                i.ID_CADPED = c.ID_CADPED
+                            WHERE
+                                mascmod_ant = '{row[0]}'
+                            GROUP BY
+                                c.CODIF,
+                                i.CADPRO,
+                                i.PRCUNT,
+                                subem,
+                                classificado,
+                                i.item,
+                                i.item,
+                                i.CODCCUSTO,
+                                c.NUMLIC,
+                                ult_sessao,
+                                i.ITEM,
+                                i.QTD,
+                                i.PRCUNT,
+                                tpcontrole_saldo""")
+        
+        with open('Scripts/insere_cadpro.txt', 'a') as f:
+            f.write(f"""INSERT
+                                INTO
+                                cadpro (codif,
+                                cadpro,
+                                quan1,
+                                vaun1,
+                                vato1,
+                                subem,
+                                status,
+                                item,
+                                itemorcped,
+                                codccusto,
+                                numlic,
+                                ult_sessao,
+                                itemp,
+                                qtdadt,
+                                qtdped,
+                                vaunadt,
+                                vatoadt,
+                                tpcontrole_saldo)
+                                SELECT
+                                c.CODIF,
+                                i.CADPRO,
+                                SUM(i.QTD) AS qtd,
+                                i.PRCUNT,
+                                SUM(i.PRCTOT) AS total_price,
+                                1 AS subem,
+                                'C' AS classificado,
+                                i.item,
+                                i.item,
+                                i.CODCCUSTO,
+                                c.NUMLIC,
+                                1 AS ult_sessao,
+                                i.ITEM,
+                                i.QTD,
+                                SUM(i.QTD) AS qtd_sum,
+                                i.PRCUNT,
+                                SUM(i.PRCTOT) AS total_price_sum,
+                                'Q' AS tpcontrole_saldo
+                            FROM
+                                ICADPED i
+                            JOIN
+                                cadped c ON
+                                i.ID_CADPED = c.ID_CADPED
+                            WHERE
+                                mascmod_ant = '{row}'
+                            GROUP BY
+                                c.CODIF,
+                                i.CADPRO,
+                                i.PRCUNT,
+                                subem,
+                                classificado,
+                                i.item,
+                                i.item,
+                                i.CODCCUSTO,
+                                c.NUMLIC,
+                                ult_sessao,
+                                i.ITEM,
+                                i.QTD,
+                                i.PRCUNT,
+                                tpcontrole_saldo;\n""")
+    commit()

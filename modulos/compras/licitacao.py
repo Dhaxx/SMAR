@@ -2,7 +2,7 @@ from conexao import *
 from ..tools import *
 from tqdm import tqdm
 
-def cadlic():
+def cadlic(): # Cabeçalho de licitações
     cur_fdb.execute('delete from cadlic')
     cria_campo('ALTER TABLE CADLIC ADD criterio_ant varchar(30)')
     cria_campo('ALTER TABLE CADLIC ADD sigla_ant varchar(2)')
@@ -338,7 +338,7 @@ def cadlic():
 
 COTACAO = lista_cotacoes()
 
-def cadprolic():
+def cadprolic(): # Itens de licitações
     cur_fdb.execute('DELETE FROM CADPROLIC')
     cria_campo('ALTER TABLE ICADORC ADD numlic varchar(10)')
     vincula_cotacao_licitacao()
@@ -406,7 +406,7 @@ def cadprolic():
 
 LICITACAO = licitacoes()
 NOME_FORNECEDOR, INSMF_FORNECEDOR = fornecedores()
-def prolic_prolics():
+def prolic_prolics(): # Proponentes de licitações
     cur_fdb.execute('DELETE FROM PROLICS')
     cur_fdb.execute('DELETE FROM PROLIC')
     cria_campo('alter table prolics add codif_ant varchar(50)')
@@ -513,7 +513,7 @@ def prolic_prolics():
             continue
     commit()
 
-def cadpro_status():
+def cadpro_status(): # Status de licitações
     cur_fdb.execute('DELETE FROM CADPRO_STATUS')
 
     consulta = cur_fdb.execute("""SELECT
@@ -540,7 +540,7 @@ def cadpro_status():
     cur_fdb.execute("update cadlic set liberacompra = 'N' where comp = 3 and status_ant in ('A')")
     commit()
 
-def cadpro_proposta():
+def cadpro_proposta(): # Propostas de licitações
     cur_fdb.execute('DELETE FROM cadpro_proposta')
     commit()
 
@@ -842,7 +842,7 @@ def cadpro_proposta():
             commit()
     commit()
 
-def cadpro_lance():
+def cadpro_lance(): # Lances de licitações
     cur_fdb.execute('delete from cadpro_lance')
     cria_campo("alter table cadpro_lance add marca varchar(50)")
     commit()
@@ -851,7 +851,7 @@ def cadpro_lance():
                         SELECT sessao, 1 rodada, CODIF, ITEMP, VAUN1, VATO1, 'F' status, SUBEM, numlic, marca FROM CADPRO_PROPOSTA cp where subem = 1""")
     commit()
 
-def cadpro_final():
+def cadpro_final(): # Situação final de licitações
     print('Inserindo os dados finais...')
     cria_campo("alter table cadpro_final add CQTDADT double precision")
     cria_campo("alter table cadpro_final add ccadpro varchar(20)")
@@ -881,7 +881,7 @@ def cadpro_final():
                         END""")
     commit()
 
-def cadpro():
+def cadpro(): # Saldo Homologado da licitação
     print('Inserindo Cadpro...')
     cur_fdb.execute('delete from cadpro')
     
@@ -964,7 +964,7 @@ def cadpro():
                             AND a.STATUS = 'F'""")
     commit()
 
-def regpreco():
+def regpreco(): # Saldo Homologado da licitação de RP
     cur_fdb.execute("""EXECUTE BLOCK AS  
                         BEGIN  
                         INSERT INTO REGPRECODOC (NUMLIC, CODATUALIZACAO, DTPRAZO, ULTIMA)  
@@ -991,7 +991,7 @@ def regpreco():
                         END;""")
     commit()
 
-def vincula_cotacao_licitacao():
+def vincula_cotacao_licitacao(): # Vincula cotação a licitação
     consulta = fetchallmap(f"""
                             select
                                 anogrupo,
@@ -1039,7 +1039,7 @@ def vincula_cotacao_licitacao():
     commit()
 
 PRODUTOS = produtos()
-def aditamento():
+def aditamento(): # Aditamentos de licitações
     consulta = fetchallmap(f"""select
                                     b.sigla,
                                     b.convit,
@@ -1081,7 +1081,7 @@ def aditamento():
     commit()
 
 ITEM_PROPOSTA = item_da_proposta()
-def cadpro_saldo_ant():
+def cadpro_saldo_ant(): # Saldo Pedido Anterior
     cur_fdb.execute('delete from cadpro_saldo_ant')
     cria_campo('alter table cadpro_saldo_ant add codif_ant varchar(10)')
 
@@ -1136,7 +1136,7 @@ def cadpro_saldo_ant():
         except:
             continue
 
-def fase_iv():
+def fase_iv(): # Fase IV
     consulta = fetchallmap(f"""
                             SELECT 
                                 Licitacao,
@@ -1154,8 +1154,7 @@ def fase_iv():
         cur_fdb.execute(f"update cadlic set codtce = {row['codtce']}, enviotce = 'S', valor = {row['valor']}  where mascmod = '{mascmod}'")
     commit()
 
-def vinculacao_contratos():
-    updates = []
+def vinculacao_contratos(): # Vincula os Contratos
     consulta = fetchallmap(f'''select
                                 c.idContrato ,
                                 cast(g.sigla as varchar) +'-'+ cast(g.convit as varchar)+'/'+ cast(g.anoc as varchar) as mascmod
@@ -1167,8 +1166,11 @@ def vinculacao_contratos():
     
     for row in tqdm(consulta, desc='Inserindo Vinculação de Contratos...'):
         cur_fdb.execute(f"update contratos a set a.proclic = (select b.proclic from cadlic b where b.mascmod='{row['mascmod']}') where a.idcontratoam = {row['idContrato']}")
-        updates.append(f"update contratos a set a.proclic = (select b.proclic from cadlic b where b.mascmod='{row['mascmod']}') where a.idcontratoam = {row['idContrato']};")
         commit()
+
+        with open('Scripts/vinculacao_contratos.txt', 'a') as f:
+            f.write("update contratos a set a.proclic = (select b.proclic from cadlic b where b.mascmod='{}') where a.idcontratoam = {};\n".format(row['mascmod'], row['idContrato']))
+
     cur_fdb.execute("UPDATE contratos a SET a.numlic = (SELECT b.nlicitacao FROM CADLICITACAO b WHERE a.proclic = b.proclic) WHERE a.proclic IS NOT NULL")
     commit()
     # print(updates)
