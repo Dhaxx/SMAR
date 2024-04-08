@@ -1,13 +1,4 @@
-# I am Satoshi
-import fdb
-
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
-from collections import namedtuple
-
-PRODUTOS = {}
-CENTROCUSTOS = {}
+from modulos.compras import *
 
 def cadastro():
     cur_fdb.execute('Delete from icadorc')
@@ -15,13 +6,6 @@ def cadastro():
 
     cria_campo('ALTER TABLE CADORC ADD idant integer')
 
-    global PRODUTOS
-    global CENTROCUSTOS
-
-    if len(PRODUTOS) == 0:
-        PRODUTOS = produtos()
-    if len(CENTROCUSTOS) == 0:
-        CENTROCUSTOS = depara_ccusto()
     insert_cadorc = cur_fdb.prep("""insert
                                 into
                                 cadorc (id_cadorc,

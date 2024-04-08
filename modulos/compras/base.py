@@ -1,6 +1,4 @@
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
+from modulos.compras import *
 
 def cadunimedida():
     cur_fdb.execute("DELETE FROM CADEST")  # Limpa tabela

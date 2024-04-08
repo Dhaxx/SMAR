@@ -1,6 +1,4 @@
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
+from modulos.compras import *
 
 def cadlic(): # Cabeçalho de licitações
     cur_fdb.execute('delete from cadlic')
@@ -336,8 +334,7 @@ def cadlic(): # Cabeçalho de licitações
     cur_fdb.execute('UPDATE CONTRATOS a SET a.PROCLIC = (SELECT b.proclic FROM cadlic b WHERE b.processo = a.proclic AND a.ano = b.ano and a.codif = b.codif)')
     commit()
 
-COTACAO = lista_cotacoes()
-
+LICITACAO = licitacoes()
 def cadprolic(): # Itens de licitações
     cur_fdb.execute('DELETE FROM CADPROLIC')
     cria_campo('ALTER TABLE ICADORC ADD numlic varchar(10)')
@@ -345,66 +342,13 @@ def cadprolic(): # Itens de licitações
     cur_fdb.execute('UPDATE ICADORC a SET a.numlic = (SELECT b.numlic FROM cadorc b WHERE a.NUMORC=b.numorc AND b.numlic IS NOT null)')
     commit()
 
-    consulta = cur_fdb.execute("""SELECT
-                            item,
-                            item,
-                            numorc,
-                            cadpro,
-                            qtd,
-                            valor,
-                            qtd * valor total,
-                            CODCCUSTO,
-                            'N' reduz,
-                            numlic,
-                            'N' microempresa,
-                            '$' tlance,
-                            ITEMORC_AG,
-                            ID_CADORC
-                        FROM
-                            iCADORC c where numlic is not null""")
-    
-    insert = cur_fdb.prep("""INSERT
-                            INTO
-                            cadprolic (item,
-                            item_mask,
-                            numorc,
-                            cadpro,
-                            quan1,
-                            vamed1,
-                            vatomed1,
-                            codccusto,
-                            reduz,
-                            numlic,
-                            microempresa,
-                            tlance,
-                            item_ag,
-                            id_cadorc) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""")
+    cur_fdb.execute("""INSERT INTO cadprolic (item, item_mask, numorc, cadpro, quan1, vamed1, vatomed1, codccusto, reduz, numlic, microempresa, tlance, item_ag, id_cadorc)
+	                   SELECT item, item, numorc, cadpro, qtd, valor, qtd * valor total, CODCCUSTO, 'N' reduz,	numlic, 'N' microempresa, '$' tlance, ITEMORC_AG, ID_CADORC
+                       FROM iCADORC c WHERE numlic IS NOT NULL""")
 
-    i = 0
-    
-    for row in tqdm(consulta.fetchallmap(), desc='LICITAÇÃO - Inserindo itens...'):
-        item = row['item']
-        item_mask = row['item']
-        numorc = row['numorc']
-        cadpro = row['cadpro']
-        quan1 = row['qtd']
-        vamed1 = row['valor']
-        vatomed1 = row['total']
-        codccusto = row['codccusto']
-        reduz = row['reduz']
-        numlic = row['numlic']
-        microempresa = row['microempresa']
-        tlance = row['tlance']
-        item_ag = row['itemorc_ag']
-        id_cadorc = row['id_cadorc']
-        marca = None
-
-        cur_fdb.execute(insert,(item, item_mask, numorc, cadpro, quan1, vamed1, vatomed1, codccusto, reduz, numlic, microempresa, tlance, item_ag, id_cadorc))
-        commit()
     cur_fdb.execute('''INSERT INTO CADPROLIC_DETALHE (NUMLIC,item,CADPRO,quan1,VAMED1,VATOMED1,marca,CODCCUSTO,ITEM_CADPROLIC) 
                        select numlic, item, cadpro, quan1, vamed1, vatomed1, marca, codccusto, item from cadprolic''')
 
-LICITACAO = licitacoes()
 NOME_FORNECEDOR, INSMF_FORNECEDOR = fornecedores()
 def prolic_prolics(): # Proponentes de licitações
     cur_fdb.execute('DELETE FROM PROLICS')
@@ -1038,7 +982,6 @@ def vincula_cotacao_licitacao(): # Vincula cotação a licitação
             continue
     commit()
 
-PRODUTOS = produtos()
 def aditamento(): # Aditamentos de licitações
     consulta = fetchallmap(f"""select
                                     b.sigla,
@@ -1080,7 +1023,6 @@ def aditamento(): # Aditamentos de licitações
                     (select numlic from cadlic where registropreco='N' and liberacompra='S') and subem=1;""")
     commit()
 
-ITEM_PROPOSTA = item_da_proposta()
 def cadpro_saldo_ant(): # Saldo Pedido Anterior
     cur_fdb.execute('delete from cadpro_saldo_ant')
     cria_campo('alter table cadpro_saldo_ant add codif_ant varchar(10)')

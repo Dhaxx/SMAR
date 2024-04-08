@@ -1,16 +1,6 @@
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
-
-PRODUTOS = {}
-
+from modulos.compras import *
 
 def cadastro():
-    global PRODUTOS
-    # Ao executar o codigo inteiro da main sem nenhum comentario das funcoes, é necessario re-popular o dict
-    if len(PRODUTOS) == 0:
-        PRODUTOS = produtos()
-
     cur_fdb.execute("delete from icadorc")
     cur_fdb.execute("delete from cadorc")
 

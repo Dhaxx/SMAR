@@ -4,9 +4,8 @@ from tqdm import tqdm
 
 # CONTAS = plano_contas()
 
-from .base import tipos_mov, tipos_ajuste, tipos_baixa, tipos_bens, tipos_situacao, grupos, unidade_subunidade
-
+from modulos.patrimonio import base
 SUBUNIDADES = subunidades()
 
-from .cadastro import bens
-from .movimentacoes import aquisicao, ajuste, baixas
+from .cadastro import *
+from .movimentacoes import *

@@ -1,11 +1,4 @@
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
-
-PRODUTOS = produtos()
-LICITACAO = licitacoes()
-CENTROCUSTO = depara_ccusto()
-NOME_FORNECEDOR, INSMF_FORNECEDOR = fornecedores()
+from modulos.compras import *
 
 def cabecalho():
     cria_campo('ALTER TABLE cadped ADD af_ant varchar(10)')
@@ -39,7 +32,7 @@ def cabecalho():
                                     a.id,
                                     cast(a.sigla as varchar)+ '-' + cast(a.convit as varchar)+ '/' + cast(a.anoc as varchar) mascmod,
                                     a.sigla,
-                                    a.convit,
+                                    cast(a.convit as integer) convit,
                                     a.anoc,
                                     a.af af_ant,
                                     a.nafano nafano_ant,
@@ -58,7 +51,7 @@ def cabecalho():
                                 left join mat.MXT61400 e on
                                     d.codnom = e.codnom 
                                 where
-                                    a.anoc >= {ANO-5}
+                                    a.nafano >= {ANO}
                                 order by [num], [ano]""")
     
     for row in tqdm(consulta, desc='Pedidos - Cabecalho'):
@@ -66,20 +59,30 @@ def cabecalho():
         num = row['num']
         ano = row['ano']
         datped = row['datped']
-        codif = row['codfor']
+        codif = INSMF_FORNECEDOR.get(row['insmf'], row['codfor']) 
         total = '0'
         entrou = row['entrou']
-        codccusto = CENTROCUSTO[row['UnidOrc']]
+        codccusto = CENTROCUSTOS.get(row['UnidOrc'], '0')
         id_cadped = row['id']
         empresa = EMPRESA
         af_ant = row['af_ant']
         nafano_ant = row['nafano_ant']
         codgrupo_ant = row['codgrupo_ant']
         anogrupo_ant = row['anogrupo_ant']
-        numlic = LICITACAO[(row['convit'],row['sigla'],row['anoc'])]
         numint_ant = row['numint_ant']
-        cur_fdb.execute(insert,(numped, num, ano, datped, codif, total, entrou, codccusto, id_cadped, 
-                                empresa, numlic, af_ant, nafano_ant, codgrupo_ant, anogrupo_ant, numint_ant))
+        mascmod_ant = row['mascmod']
+        anoint_ant = row['anoint_ant']
+        try:
+            numlic = LICITACAO[(row['convit'],row['sigla'],row['anoc'])]
+            cur_fdb.execute(insert,(numped, num, ano, datped, codif, total, entrou, codccusto, id_cadped, 
+                                    empresa, numlic, af_ant, nafano_ant, codgrupo_ant, anogrupo_ant, numint_ant, mascmod_ant, anoint_ant))
+            with open('Scripts/cadped.txt', 'a') as f:
+                f.write(f"""insert into cadped (numped, num, ano, datped, codif, total, entrou, codccusto, id_cadped, empresa, numlic, af_ant, nafano_ant, 
+                                            codgrupo_ant, anogrupo_ant, numint_ant, mascmod_ant)
+                            values ({numped, num, ano, datped, codif, total, entrou, codccusto, id_cadped, 
+                                    empresa, numlic, af_ant, nafano_ant, codgrupo_ant, anogrupo_ant, numint_ant, mascmod_ant});\n""")
+        except:
+            print(f'Erro: {numped}\n')
     commit()
 
 def itens():
@@ -110,7 +113,7 @@ def itens():
                                 LEFT JOIN mat.UnidOrcamentariaW c ON
                                     a.idNivel5 = c.idNivel5
                                 WHERE
-                                    a.anoc >= {ANO-5} and a.af is not NULL 
+                                    a.nafano >= {ANO} and a.af is not NULL 
                                 order by [numped], [nuitem]
                                 """)
     
@@ -121,7 +124,7 @@ def itens():
         qtd = row['qtde']
         prcunt = row['preco']
         prctot = row['total']
-        codccusto = CENTROCUSTO[row['UnidOrc']]
+        codccusto = CENTROCUSTOS[row['UnidOrc']]
         id_cadped = row['id']
         af_ant = row['af']
         nafano_ant = row['nafano']

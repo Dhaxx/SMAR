@@ -1,8 +1,4 @@
-from conexao import *
-from ..tools import *
-from tqdm import tqdm
-
-PRODUTOS = produtos()
+from modulos.compras import *
 
 def almoxarif_para_ccusto(): # Converte cada almxoarifado como sendo um centro de custo
     consulta = cur_fdb.execute("""select cod_ant, cod destino, cast(cod as integer) as codccusto, empresa, desti descr from destino""").fetchallmap()
@@ -23,8 +19,8 @@ def almoxarif_para_ccusto(): # Converte cada almxoarifado como sendo um centro d
     commit()
 
 def requi_saldo_ant(): # Insere saldo anterior no estoque
-    cur_fdb.execute("delete from requi")
-    cur_fdb.execute("delete from icadreq")
+    cur_fdb.execute("delete from icadreq where requi starting '000000/'")
+    cur_fdb.execute("delete from requi where requi starting '000000/'")
 
     consulta = fetchallmap(f"""select *, [vato1] / [quan1] vaun1 from (select 
                                 1 id_requi,
@@ -77,8 +73,8 @@ def requi_saldo_ant(): # Insere saldo anterior no estoque
     commit()
 
 def requi(): # Insere requisição do exercício
-    cur_fdb.execute(f"delete from icadreq where requi <> '000000/{ANO%2000}'")
-    cur_fdb.execute(f"delete from requi where requi <> '000000/{ANO%2000}'")
+    cur_fdb.execute(f"delete from icadreq where id_requi in (select id_requi from requi where requi <> '000000/{ANO%2000}' and conversao <> 'S')")
+    cur_fdb.execute(f"delete from requi where requi <> '000000/{ANO%2000}' and conversao <> 'S'")
     cria_campo('ALTER TABLE requi ADD nrodct_ant varchar(20)')
     
     insert_requi = cur_fdb.prep("""INSERT INTO requi (EMPRESA, ID_REQUI, requi, num, ano, destino, CODCCUSTO, DTLAN,
@@ -131,14 +127,16 @@ def requi(): # Insere requisição do exercício
                                     itens;""")
     
     id_requi = int(cur_fdb.execute('select max(id_requi) from requi').fetchone()[0])
+    num_max = int(cur_fdb.execute('select max(num) from requi').fetchone()[0])
     nrodct_ant = '00000000000000000000'
     
     for row in tqdm(consulta, desc='ESTOQUE - Inserindo Requisição do Exercício'):
         if (row['nrodct'] != nrodct_ant) or (row['nrodct'] == nrodct_ant and row['tipo'] != tipo_ant):
             empresa = EMPRESA
             id_requi += 1 
-            requi = f'{str(id_requi).zfill(6)}/{ANO%2000}'
-            num = str(id_requi).zfill(6)
+            num_max += 1
+            requi = f'{str(num_max).zfill(6)}/{ANO%2000}'
+            num = str(num_max).zfill(6)
             ano = ANO
             destino = row['destino']
             codccusto = row['codccusto']
@@ -216,7 +214,7 @@ def subpedidos(): # Insere BRM's como subpedidos
                                     left join mat.MXT60600 c on 
                                     a.af = c.af and a.brmano = c.brmano and a.brmnum = c.brmnum
                                     where
-                                        a.nafano >= 2019)query
+                                        a.nafano >= {ANO})query
                                 order by
                                     [requi],
                                     [item]
@@ -257,16 +255,9 @@ def subpedidos(): # Insere BRM's como subpedidos
             cur_fdb.execute(insert_requi,(empresa, id_requi, requi, num, ano, destino, codccusto, dtlan, datae, entr, said, entr_said, comp, tiposaida, tprequi, obs, conversao, numped, docum))
 
         item = row['item']
-        if row['tipo'] == 'E': # Se for entrada
-            quan1 = abs(row['quan1'])
-            vaun1 = row['vaun1']
-            vato1 = abs(float(row['vato1']))
-            quan2, vaun2, vato2 = 0, 0, 0
-        else: # Se for saída
-            quan1, vaun1, vato1 = 0, 0, 0
-            quan2 = abs(row['quan1'])
-            vaun2 = row['vaun1']
-            vato2 = abs(float(row['vato1']))
+        quan1, quan2 = abs(row['quan1']), abs(row['quan1'])
+        vaun1, vaun2 = row['vaun1'], row['vaun1']
+        vato1, vato2 = abs(float(row['vato1'])), abs(float(row['vato1']))
         cadpro = PRODUTOS[row['cadpro']]
         cur_fdb.execute(insert_icadreq,(id_requi, requi, codccusto, empresa, item, quan1, vaun1, vato1, quan2, vaun2, vato2, cadpro, destino))
     commit()
