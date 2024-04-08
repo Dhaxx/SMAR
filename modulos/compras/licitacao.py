@@ -278,8 +278,7 @@ def cadlic(): # Cabeçalho de licitações
                                         and c903.anoc = c914.anoc
                                         and c903.sigla = c914.sigla
                                     where
-                                        c914.anoc >= {ANO-5}
-                                                                ) AS subconsulta
+                                        c914.anoc >= {ANO-5}) AS subconsulta
                                 ORDER BY
                                     proclic,
                                     ANO;""")

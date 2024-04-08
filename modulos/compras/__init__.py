@@ -10,7 +10,7 @@ from modulos.compras import solicitacoes
 CENTROCUSTOS = depara_ccusto()
 
 from modulos.compras import cotacoes
-# COTACAO = lista_cotacoes()
+COTACAO = lista_cotacoes()
 
 from modulos.compras.licitacao import cadlic
 LICITACAO = licitacoes()
@@ -26,7 +26,7 @@ from modulos.compras.licitacao import cadpro_final
 from modulos.compras.licitacao import cadpro
 from modulos.compras.licitacao import regpreco
 from modulos.compras.licitacao import aditamento
-# ITEM_PROPOSTA = item_da_proposta()
+ITEM_PROPOSTA = item_da_proposta()
 from modulos.compras.licitacao import cadpro_saldo_ant
 from modulos.compras.licitacao import fase_iv
 from modulos.compras.licitacao import vinculacao_contratos
