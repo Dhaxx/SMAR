@@ -39,20 +39,28 @@ def cabecalho():
                                     a.codgrupo codgrupo_ant,
                                     a.anogrupo anogrupo_ant,
                                     a.numint numint_ant,
-                                    a.anoint anoint_ant
+                                    a.anoint anoint_ant,
+                                    f.nbloq nempg
                                 from
                                     mat.MCT67000 a
                                 join mat.MCT66800 b on
-                                    a.af = b.af and a.nafano = b.nafano
+                                    a.af = b.af
+                                    and a.nafano = b.nafano
                                 left join mat.UnidOrcamentariaW c on
                                     a.idNivel5 = c.idNivel5
                                 join mat.MXT60100 d on
                                     d.codfor = a.codfor
                                 left join mat.MXT61400 e on
-                                    d.codnom = e.codnom 
+                                    d.codnom = e.codnom
+                                left join mat.MCT71200 f on
+                                    f.af = a.af
+                                    and a.nafano = f.anoaf
                                 where
-                                    a.nafano >= {ANO}
-                                order by [num], [ano]""")
+                                    a.nafano >= 2024
+                                    and a.af = 1390
+                                order by
+                                    [num],
+                                    [ano]""")
     
     for row in tqdm(consulta, desc='Pedidos - Cabecalho'):
         numped = row['numped']
@@ -84,6 +92,11 @@ def cabecalho():
         except:
             print(f'Erro: {numped}\n')
     commit()
+    cur_fdb.execute("""UPDATE cadped a SET a.nempg = (SELECT b.nempg FROM despes b WHERE b.anoint = a.ANOINT_ANT AND b.numint = a.NUMINT_ANT), 
+                        a.pkemp = ( SELECT c.pkemp FROM despes c WHERE c.anoint = a.ANOINT_ANT AND c.numint = a.NUMINT_ANT)""") # Adiciona o pkemp e nempg no cadped
+    
+    cur_fdb.execute("""UPDATE despes a SET a.NUMPED = ( SELECT b.numped FROM cadped b WHERE a.pkemp = b.pkemp), 
+                       a.id_cadped = ( SELECT c.id_cadped FROM cadped c WHERE a.pkemp = c.pkemp) WHERE NUMINT IS NOT NULL""") # Adiciona o numped e id_cadped na despes
 
 def itens():
     cur_fdb.execute('delete from icadped')
