@@ -331,6 +331,8 @@ def cadlic(): # Cabeçalho de licitações
                   WHERE numlic not in (SELECT FIRST 1 S.NUMLIC FROM CADLIC_SESSAO S WHERE S.NUMLIC = L.NUMLIC)''')
     cur_fdb.execute('''UPDATE cadlic SET MASCMOD = SIGLA_ANT||'-'||NUMPRO||'/'||ANO''')
     cur_fdb.execute('UPDATE CONTRATOS a SET a.PROCLIC = (SELECT b.proclic FROM cadlic b WHERE b.processo = a.proclic AND a.ano = b.ano and a.codif = b.codif)')
+    cur_fdb.execute('''update cadlic a set gera_contrato_tce='S' where proclic in (select proclic from contratos)''')
+    cur_fdb.execute('''update cadlic a set gera_contrato_tce='N' where proclic not in (select proclic from contratos);''')
     commit()
 
 LICITACAO = licitacoes()

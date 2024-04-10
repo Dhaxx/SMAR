@@ -261,3 +261,4 @@ def subpedidos(): # Insere BRM's como subpedidos
         cadpro = PRODUTOS[row['cadpro']]
         cur_fdb.execute(insert_icadreq,(id_requi, requi, codccusto, empresa, item, quan1, vaun1, vato1, quan2, vaun2, vato2, cadpro, destino))
     commit()
+    cur_fdb.execute("update requi a set a.id_cadped = (select b.id_cadped from cadped b where a.numped=b.numped")
