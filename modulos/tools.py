@@ -239,7 +239,7 @@ def aditivos_contratos():
     
     consulta = fetchallmap("""select
                                     cast(idContrato as varchar) idContrato,
-                                    RIGHT('0000' + numeroAlteracao,
+                                    RIGHT('00000' + numeroAlteracao,
                                     4)+ '/' + SUBSTRING(cast(anoAlteracao as varchar), 3, 4) termo,
                                     isnull(dataInicioVigencia, dataAssinatura) dtlan,
                                     justificativaAlteracao descricao,
@@ -445,4 +445,66 @@ def insere_cadpro_cadped():
                                 i.QTD,
                                 i.PRCUNT,
                                 tpcontrole_saldo;\n""")
+    commit()
+
+def insere_crc():
+    _, INSMF_FORNECEDOR = fornecedores()
+
+    cabecalho = fetchallmap("""SELECT
+                                    nro_crc,
+                                    MAX(ano_crc) AS maior_ano,
+                                    a.codfor,
+                                    dt_emissao_orig,
+                                    dt_atualizacao,
+                                    dt_vencimento,
+                                    rtrim(c.dcto01) insmf
+                                FROM
+                                    mat.MXT73700 a
+                                join mat.MXT60100 b on
+                                    b.codfor = a.codfor
+                                left join mat.MXT61400 c on
+                                    b.codnom = c.codnom
+                                where c.dcto01 is not null
+                                GROUP BY
+                                    a.codfor,
+                                    nro_crc,
+                                    dt_emissao_orig,
+                                    dt_atualizacao,
+                                    dt_vencimento,
+                                    rtrim(c.dcto01)
+                                order by codfor, [maior_ano]""")
+    
+    documentos = fetchallmap("""select
+                                    a.IdJurFis codcrc,
+                                    a.codfor,
+                                    b.descrc,
+                                    a.datexp,
+                                    a.datven,
+                                    case when (a.datven) is not null then 'N' else 'S' end vencimento,
+                                    rtrim(e.dcto01) insmf
+                                from
+                                    mat.MXT60400 a
+                                join mat.MXT60500 b on
+                                    a.codobr = b.codite
+                                join mat.MXT60100 c on
+                                    c.codfor = a.codfor
+                                left join mat.MXT61400 e on
+                                    c.codnom = e.codnom
+                                where
+                                    b.codsis = 001
+                                    and b.codtab = 014
+                                    and rtrim(e.dcto01) is not null
+                                order by datven  --RELAÇÃO DE DOCUMENTOS""")
+    
+    update = cur_fdb.prep("update desfor set crcinsc = '?', crc_dtinsc = '?', crc_dtvalid = '?' where insmf = '?'")
+    insert = cur_fdb.prep("insert into desforcrc (codcrc, desccertidao, datafim, codif, dataemicrc, docnumcrc, semvalidade) values (?,?,?,?,?,?,?)")
+    
+    for row in tqdm(cabecalho, desc='Inserindo CRCs'):
+        cur_fdb.execute("update desfor set crcinsc = ?, crc_dtinsc = ?, crc_dtvalid = ? where insmf = ?", (row['nro_crc'], row['dt_emissao_orig'], row['dt_vencimento'], row['insmf']))
+    commit()
+
+    cur_fdb.execute('delete from desforcrc')
+
+    for row in tqdm(documentos, desc='Inserindo Documentos'):
+        cur_fdb.execute(insert, (row['codcrc'], row['descrc'], row['datven'], INSMF_FORNECEDOR.get(row['insmf'], 0), row['datexp'], row['insmf'], row['vencimento']))
     commit()

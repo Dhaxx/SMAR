@@ -28,9 +28,9 @@ def main():
     # compras.fase_iv()
     # compras.vinculacao_contratos()
 
-    compras.pedidos.cabecalho()
-    compras.pedidos.itens()
-    compras.estoque.subpedidos()
+    # compras.pedidos.cabecalho()
+    # compras.pedidos.itens()
+    # compras.estoque.subpedidos()
 
 ##### ALMOXARIFADO #####   
     # compras.estoque.almoxarif_para_ccusto()
@@ -59,8 +59,9 @@ def main():
     # patrimonio.movimentacoes.baixas()
     
 #### AJUSTES #####
-    # tools.aditivos_contratos()
+    tools.aditivos_contratos()
     # tools.insere_cadpro_cadped()
+    tools.insere_crc()
 
 if __name__ == '__main__':
     main()
