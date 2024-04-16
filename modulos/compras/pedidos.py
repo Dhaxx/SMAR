@@ -150,14 +150,7 @@ def itens():
     consulta = fetchallmap(f"""SELECT
                                 RIGHT('00000' + CAST(a.id AS VARCHAR),
                                 5) + '/' + SUBSTRING(a.anoint, 3, 2) AS numped,
-                                CASE
-                                    WHEN b.nuitem IS NULL THEN ROW_NUMBER() OVER (PARTITION BY RIGHT('00000' + CAST(b.af AS VARCHAR),
-                                    5) + '/' + SUBSTRING(b.nafano, 3, 2),
-                                    b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat
-                                ORDER BY
-                                    a.id)
-                                    ELSE b.nuitem
-                                END AS nuitem,
+                                isnull(b.nuitem, ROW_NUMBER() over (PARTITION by a.id ORDER by a.id)) nuitem,
                                 b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat AS cadpro,
                                 b.qtde,
                                 b.preco,
@@ -181,14 +174,7 @@ def itens():
                             SELECT
                                 RIGHT('00000' + CAST(a.af AS VARCHAR),
                                 5) + '/' + SUBSTRING(a.nafano, 3, 2) AS numped,
-                                CASE
-                                    WHEN b.nuitem IS NULL THEN ROW_NUMBER() OVER (PARTITION BY RIGHT('00000' + CAST(b.af AS VARCHAR),
-                                    5) + '/' + SUBSTRING(b.nafano, 3, 2),
-                                    b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat
-                                ORDER BY
-                                    a.id)
-                                    ELSE b.nuitem
-                                END AS nuitem,
+                                isnull(b.nuitem, ROW_NUMBER() over (PARTITION by a.id ORDER by a.id)),
                                 b.estrut + '.' + b.grupo + '.' + b.subgrp + '.' + b.itemat + '-' + b.digmat AS cadpro,
                                 b.qtde,
                                 b.preco,

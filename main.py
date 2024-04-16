@@ -1,4 +1,4 @@
-from modulos import *
+from modulos import tools
 
 def main():
 ##### COMPRAS #####
@@ -59,9 +59,13 @@ def main():
     # patrimonio.movimentacoes.baixas()
     
 #### AJUSTES #####
-    tools.aditivos_contratos()
+    # tools.aditivos_contratos()
     # tools.insere_cadpro_cadped()
-    tools.insere_crc()
+    # tools.insere_crc()
+    # tools.insere_socios_administradores()
+    # tools.datas_cadlic()
+    # tools.ajusta_descritivo_cotacoes()
+    tools.vincula_socio_fornecedor()
 
 if __name__ == '__main__':
     main()

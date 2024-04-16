@@ -508,3 +508,186 @@ def insere_crc():
     for row in tqdm(documentos, desc='Inserindo Documentos'):
         cur_fdb.execute(insert, (row['codcrc'], row['descrc'], row['datven'], INSMF_FORNECEDOR.get(row['insmf'], 0), row['datexp'], row['insmf'], row['vencimento']))
     commit()
+
+def insere_socios_administradores():
+    _, INSMF_FORNECEDOR = fornecedores()
+    codifs = []
+
+    consulta = fetchallmap("""select
+                                a.codnom,
+                                SUBSTRING(b.desnom, 1, 50) desnom,
+                                rtrim(b.dcto01) insmf,
+                                SUBSTRING(b.razao_social, 1, 50) razao_social
+                            from
+                                mat.MXT61600 a
+                            join mat.MXT61400 b on
+                                b.codnom = a.codnom
+                            where fisjur = 0""")
+    
+    max_codif = 63066
+    
+    for row in tqdm(consulta, desc='Inserindo Sócios e Administradores'):
+        if INSMF_FORNECEDOR.get(row['insmf'], None):
+            continue
+        else:
+            max_codif += 1
+            cur_fdb.execute("insert into desfor (codif, nome, insmf, nom_fant) values (?,?,?,?)", (max_codif, row['desnom'], row['insmf'], row['razao_social']))
+            commit()
+            codifs.append(max_codif)
+    print(codifs)
+
+def datas_cadlic():
+    consulta = fetchallmap(f"""SELECT
+                                    LTRIM(ISNULL(query.cpcpro, e.cpcpro)) AS processo,
+                                    isnull(query.cpcano, e.cpcano) ano,
+                                    [datae],
+                                    [dtenv],
+                                    [dtrealiz],
+                                    [dtadj],
+                                    [dthom],
+                                    [mascmod]
+                                from
+                                    (
+                                    select
+                                        a.cpcpro,
+                                        a.cpcano,
+                                        isnull(a.dtAbertProcAdm, b.datac) datae,
+                                        b.dtAtaAberturaProposta dtenv,
+                                        isnull(b.dtAbertLicitacao, b.dataadjudicacao) dtrealiz,
+                                        b.dataadjudicacao dtadj,
+                                        b.dataadjudicacao dthom,
+                                        a.sigla + '-' + cast(a.convit as varchar)+ '/' + a.anoc mascmod
+                                    from
+                                        mat.MCT90300 a
+                                    left join mat.MCT91400 b on
+                                        a.sigla = b.sigla
+                                        and a.convit = b.convit
+                                        and a.anoc = b.anoc
+                                    where
+                                        a.anoc >= {ANO-5}
+                                    UNION
+                                    select
+                                        NULL,
+                                        NULL,
+                                        isnull(c.cpcdtai, d.datac) datae,
+                                        d.dtAtaAberturaProposta,
+                                        d.dtAbertLicitacao dtrealiz,
+                                        d.dataadjudicacao dtadj,
+                                        d.dataadjudicacao dthom,
+                                        c.sigla + '-' + cast(c.convit as varchar)+ '/' + c.anoc mascmod
+                                    from
+                                        mat.MCT69700 c
+                                    left join mat.MCT67600 d on
+                                        c.sigla = d.sigla
+                                        and c.convit = d.convit
+                                        and c.anoc = d.anoc
+                                    where
+                                        c.anoc >= {ANO-5}) as query
+                                left JOIN mat.MCT80600 e on
+                                    query.[mascmod] = e.sigla + '-' + cast(e.convit as varchar)+ '/' + e.anoc""")
+    
+    update = cur_fdb.prep("update cadlic set processo = ?, processo_ano = ?, datae = '?', dtenv = '?', dtreal = '?', dtadj = '?', dthom = '?' where mascmod = '?'")
+    i = 0
+
+    for row in tqdm(consulta, desc='Inserindo Datas Cadlic'):
+        i += 1
+        processo = row['processo']
+        ano = row['ano']
+        datae = row['datae']
+        dtenv = row['dtenv']
+        dtreal = row['dtrealiz']
+        dtadj = row['dtadj']
+        dthom = row['dthom']
+        mascmod = row['mascmod']
+        cur_fdb.execute(update, (processo, ano, datae, dtenv, dtreal, dtadj, dthom, mascmod))
+    commit()
+
+def ajusta_descritivo_cotacoes():
+    consulta = fetchallmap(r"""	select
+		d.idcotacao,
+		c.codgrupo,
+		c.anogrupo,
+		replace(b.motdev, '\r\n', '') motdev
+	from
+		mat.MCT71900 a
+	join mat.MCT90000 b on
+		a.numreq = b.numreg
+		and a.anoreq = b.anoreg
+	join mat.MCT80200 c on
+		c.IdAgrupamento = a.IdAgrupamento
+	join mat.MCT79900 d on
+		d.codgrupo = c.codgrupo
+		and d.anogrupo = c.anogrupo
+	where
+		b.motdev is not null
+		and b.motdev <> ''
+union all
+	select
+		d.idcotacao,
+		c.codgrupo,
+		c.anogrupo,
+		replace(b.motdev, '\r\n', '') motdev
+	from
+		mat.MCT71900 a
+	join mat.MCT63400 b on
+		a.numreq = b.numreq
+		and a.anoreq = b.anoreq
+	join mat.MCT80200 c on
+		c.IdAgrupamento = a.IdAgrupamento
+	join mat.MCT79900 d on
+		d.codgrupo = c.codgrupo
+		and d.anogrupo = c.anogrupo
+	where
+		b.motdev is not null
+		and b.motdev <> ''""")
+    
+    non_printable_regex = re.compile(r'[\x00-\x1F\x7F-\x9F]')
+
+    for row in tqdm(consulta, desc='Ajustando Descritivo Cotacoes'):
+        descr = row['motdev'].replace("'", '')[:1024]
+        
+        # Remove todos os caracteres não imprimíveis da string
+        descr = non_printable_regex.sub('', descr)
+        
+        cur_fdb.execute(f"""update cadorc set descr = '{descr}' where idant = {row['idcotacao']}""")
+    commit()
+
+def vincula_socio_fornecedor():
+    cria_campo('alter table desfor_socios add cargo_ant varchar(50)')
+
+    _, INSMF_FORNECEDOR = fornecedores()
+
+    consulta = fetchallmap("""select distinct
+                                a.codfor,
+                                rtrim(c.dcto01) insmf_empresa,
+                                c.razao_social empresa,
+                                d.desnom admin,
+                                rtrim(d.dcto01) insmf_admin,
+                                e.descrc,
+                                a.nroRegistro,
+                                a.dataRegistro,
+                                d.codnom
+                            from
+                                mat.MXT61600 a
+                            join mat.MXT60100 b on
+                                a.codfor = b.codfor
+                            JOIN mat.MXT61400 c on
+                                c.codnom = b.codnom
+                            join mat.MXT61400 d on
+                                d.codnom = a.codnom
+                            join mat.MXT60500 e on
+                                a.carsoc = e.codite
+                            where
+                                e.codsis = 001
+                                and e.codtab = 009""")
+    
+    insert = cur_fdb.prep("""insert into desfor_socios (codif, codif_socio, dt_juntacomer, numregistro, cargosocio, cargo_ant) values (?,?,?,?,?,?)""")
+
+    for row in tqdm(consulta, desc="Vinculando Sócios"):
+        try:
+            codif_empresa = INSMF_FORNECEDOR.get(row['insmf_empresa'], None)
+            codif_socio = INSMF_FORNECEDOR.get(row['insmf_admin'], None)
+            cur_fdb.execute(insert, (codif_empresa, codif_socio, row['dataRegistro'], row['nroRegistro'], 1, row['descrc']))
+        except:
+            continue
+    commit()
