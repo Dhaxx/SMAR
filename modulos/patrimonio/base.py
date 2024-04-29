@@ -68,14 +68,28 @@ def tipos_bens():
     cria_campo('alter table pt_cadtip add ID_GRPBENS varchar(20)')
     cria_campo('alter table pt_cadtip add ID_CDCLASSE varchar(20)')
     cria_campo('alter table pt_cadtip add ID_ICTIPCADASTRO varchar(20)')
+    cria_campo('alter table pt_cadtip add percent integer')
+    cria_campo('alter table pt_cadtip add meses integer')
 
     consulta = fetchallmap('''
-        SELECT a.idclspatrimonial, a.grpbens, a.cdclasse, substring(a.dcclspatrimonial,1,60) dcclspatrimonial , A.ictipcadastro
-        FROM MAT.MPT05000 A
-        ORDER BY 1, 2, 3
+                                SELECT
+                                    a.idclspatrimonial,
+                                    a.grpbens,
+                                    a.cdclasse,
+                                    substring(a.dcclspatrimonial, 1, 60) dcclspatrimonial ,
+                                    A.ictipcadastro,
+                                    percvlrresidual,
+                                    anosvidautil * 12 meses
+                                FROM
+                                    MAT.MPT05000 A
+                                ORDER BY
+                                    1,
+                                    2,
+                                    3
     ''')
 
-    insert = cur_fdb.prep('insert into pt_cadtip (codigo_tip, empresa_tip, descricao_tip, id_idclspatrimonial, id_grpbens, id_cdclasse, id_ictipcadastro, codigo_tce_tip) values (?, ?, ?, ?, ?, ?, ?, ?)')
+    insert = cur_fdb.prep("""insert into pt_cadtip (codigo_tip, empresa_tip, descricao_tip, id_idclspatrimonial, 
+                             id_grpbens, id_cdclasse, id_ictipcadastro, codigo_tce_tip, percent, meses) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
     codigo_tip = 0
 
     for row in tqdm(consulta, desc="PATRIMÔNIO - Tipos de Bens"):
@@ -88,7 +102,9 @@ def tipos_bens():
         id_ictipcadastro = row['ictipcadastro']
         codigo_tce_tip = cur_fdb.execute(f"select balco from conpla_tce where titco containing '{row['dcclspatrimonial']}' and (balco starting '123' or balco starting '331')").fetchone()
         codigo_tce_tip = codigo_tce_tip[0] if codigo_tce_tip else None
-        valores = (codigo_tip, empresa_tip, descricao_tip, id_idclspatrimonial, id_grpbens, id_cdclasse, id_ictipcadastro, codigo_tce_tip)
+        percent = row['percvlrresidual']
+        meses = row['meses']
+        valores = (codigo_tip, empresa_tip, descricao_tip, id_idclspatrimonial, id_grpbens, id_cdclasse, id_ictipcadastro, codigo_tce_tip, percent, meses)
         cur_fdb.execute(insert, valores)
     commit()
 
@@ -115,9 +131,12 @@ def grupos():
     cur_fdb.execute('delete from pt_cadpatg')        
 
     insert = cur_fdb.prep("INSERT INTO PT_CADPATG (CODIGO_GRU, EMPRESA_GRU, NOGRU_GRU) VALUES (?, ?, ?)")
-    valores = (1, EMPRESA, 'Geral')   
+    valores = [(1, EMPRESA, 'Móveis'),
+               (2, EMPRESA, 'Veículos'),
+               (3, EMPRESA, 'Imóveis'),
+               (4, EMPRESA, 'Acervo')]
 
-    cur_fdb.execute(insert, valores)
+    cur_fdb.executemany(insert, valores)
     commit()
         
 def unidade_subunidade():

@@ -163,18 +163,19 @@ def baixas():
         historico_mov = row['historico_mov']
         cur_fdb.execute(insert_movbem, (empresa_mov, codigo_mov, codigo_pat_mov, data_mov, codigo_bai_mov, tipo_mov, incorpora_mov, depreciacao_mov,
                                         codigo_set_mov, valor_mov, documento_mov, historico_mov))
-    cur_fdb.execute('''
-                    merge into pt_cadpat a using pt_movbem b on (a.codigo_pat = b.codigo_pat_mov and b.tipo_mov = 'B')
-                    when matched then update set a.dtpag_pat = b.data_mov, a.codigo_bai_pat = coalesce(b.codigo_bai_mov, 0)
-                    ''')
-    cur_fdb.execute('''
-                    UPDATE PT_CADPAT A SET
-                    A.CODIGO_SET_ATU_PAT = (SELECT FIRST 1 X.CODIGO_SET_MOV FROM PT_MOVBEM X
-                    WHERE A.CODIGO_PAT = X.CODIGO_PAT_MOV AND X.TIPO_MOV = 'T' AND X.CODIGO_SET_MOV IS NOT NULL
-                    ORDER BY X.CODIGO_MOV DESC)
-                    WHERE EXISTS(SELECT 1 FROM PT_MOVBEM X WHERE A.CODIGO_PAT = X.CODIGO_PAT_MOV
-                    AND X.TIPO_MOV = 'T')
-                    ''')
+    # cur_fdb.execute('''
+    #                 merge into pt_cadpat a using pt_movbem b on (a.codigo_pat = b.codigo_pat_mov and b.tipo_mov = 'B')
+    #                 when matched then update set a.dtpag_pat = b.data_mov, a.codigo_bai_pat = coalesce(b.codigo_bai_mov, 0)
+    #                 ''')
+    # cur_fdb.execute('''
+    #                 UPDATE PT_CADPAT A SET
+    #                 A.CODIGO_SET_ATU_PAT = (SELECT FIRST 1 X.CODIGO_SET_MOV FROM PT_MOVBEM X
+    #                 WHERE A.CODIGO_PAT = X.CODIGO_PAT_MOV AND X.TIPO_MOV = 'T' AND X.CODIGO_SET_MOV IS NOT NULL
+    #                 ORDER BY X.CODIGO_MOV DESC)
+    #                 WHERE EXISTS(SELECT 1 FROM PT_MOVBEM X WHERE A.CODIGO_PAT = X.CODIGO_PAT_MOV
+    #                 AND X.TIPO_MOV = 'T')
+    #                 ''')
+    cur_fdb.execute("update pt_cadpat set valatu_pat = 0 where dtpag_pat is not null")
     commit()
 
 def depreciacoes():
@@ -233,5 +234,6 @@ def depreciacoes():
         percentual_mov = row['percentual_mov']
         depreciacao_mov = row['depreciacao_mov']
 
-        cur_fdb.execute(insert, (codigo_mov, empresa_mov, codigo_pat_mov, data_mov, tipos_mov, codigo_cpl_mov, codigo_set_mov, valor_mov, historico_mov, lote_mov, percentual_mov, depreciacao_mov))
+        cur_fdb.execute(insert, (codigo_mov, empresa_mov, codigo_pat_mov, data_mov, tipos_mov, codigo_cpl_mov, codigo_set_mov, 
+                                 valor_mov, historico_mov, lote_mov, percentual_mov, depreciacao_mov))
     commit()

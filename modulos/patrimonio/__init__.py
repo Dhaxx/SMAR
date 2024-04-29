@@ -1,11 +1,12 @@
-from conexao import *
-from ..tools import *
+from conexao import cur_fdb, cur_sql, fetchallmap, commit
 from tqdm import tqdm
 
-# CONTAS = plano_contas()
-
+from modulos.tools import *
 from modulos.patrimonio import base
-SUBUNIDADES = subunidades()
 
-from .cadastro import *
-from .movimentacoes import *
+# CONTAS = plano_contas()
+SUBUNIDADES = subunidades()
+_, INSMF = fornecedores()
+
+from modulos.patrimonio import cadastro
+from modulos.patrimonio import movimentacoes
