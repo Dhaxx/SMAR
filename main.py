@@ -65,7 +65,7 @@ def main():
     # tools.insere_socios_administradores()
     # tools.datas_cadlic()
     # tools.ajusta_descritivo_cotacoes()
-    tools.vincula_socio_fornecedor()
+    # tools.vincula_socio_fornecedor()
 
 if __name__ == '__main__':
     main()
