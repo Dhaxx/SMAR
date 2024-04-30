@@ -29,7 +29,7 @@ def main():
     # compras.vinculacao_contratos()
 
     # compras.pedidos.cabecalho()
-    compras.pedidos.itens()
+    # compras.pedidos.itens()
     # compras.estoque.subpedidos()
 
 ##### ALMOXARIFADO #####   
@@ -57,6 +57,7 @@ def main():
     # patrimonio.cadastro.bens()
     # patrimonio.movimentacoes.aquisicao()
     # patrimonio.movimentacoes.baixas()
+    patrimonio.movimentacoes.depreciacoes()
     
 #### AJUSTES #####
     # tools.aditivos_contratos()
