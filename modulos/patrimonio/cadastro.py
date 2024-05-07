@@ -34,7 +34,8 @@ def bens():
                                                     WHEN 'N' THEN 'Normal'        
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
-                                                END        
+                                                END,
+								cpl_ant = p050.dcclspatrimonial
                             FROM mat.MPT65000 p650        
                             -- Join com a Classe Patrimonial para identificar se é Móvel ou Veículo        
                             INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p650.idclspatrimonial        
@@ -75,9 +76,11 @@ def bens():
                                                     WHEN 'N' THEN 'Normal'        
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
-                                                END   
+                                                END,
+                                cpl_ant = p050.dcclspatrimonial
                             FROM mat.MPT65700 p657          
-                            LEFT JOIN mat.MPT81000 p810 ON p810.idpontfatorinfluencia = p657.idestadocsv        
+                            LEFT JOIN mat.MPT81000 p810 ON p810.idpontfatorinfluencia = p657.idestadocsv 
+                            INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p657.idclspatrimonial       
                             left JOIN mat.MPT79900 p799  
                             ON p799.dossie = p657.pinscr  
                             JOIN mat.MXT03700 t037 ON t037.idformaaquisicao = p657.idformaaquisicao
@@ -116,9 +119,11 @@ def bens():
                                                     WHEN 'N' THEN 'Normal'        
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
-                                                END		  
+                                                END,
+                                 cpl_ant = p050.dcclspatrimonial
                             FROM mat.MPT80100 p801        
                             LEFT JOIN mat.MPT81000 p810 ON p810.idpontfatorinfluencia = p801.idestadocsv   
+                            INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p801.idclspatrimonial       
                             JOIN mat.MXT03700 t037 ON t037.idformaaquisicao = p801.idformaaquisicao
                             LEFT join mat.UnidOrcamentariaW a ON a.idNivel5 = p801.idNivel5
                             LEFT join mat.MXT60100 b on b.codfor = p801.codfor
