@@ -2,6 +2,7 @@ from modulos.patrimonio import *
 
 def bens():
     cur_fdb.execute('delete from pt_cadpat')
+    cria_campo('ALTER TABLE PT_CADPAT ADD cpl_ant varchar(150)')
 
     consulta = fetchallmap('''SELECT 
                                 codigo_pat     = cast(p650.idPatmob as varchar),
@@ -35,7 +36,7 @@ def bens():
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
                                                 END,
-								cpl_ant = p050.dcclspatrimonial
+								cpl_ant = rtrim(upper(p050.dcclspatrimonial))
                             FROM mat.MPT65000 p650        
                             -- Join com a Classe Patrimonial para identificar se é Móvel ou Veículo        
                             INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p650.idclspatrimonial        
@@ -77,7 +78,7 @@ def bens():
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
                                                 END,
-                                cpl_ant = p050.dcclspatrimonial
+                                cpl_ant = rtrim(upper(p050.dcclspatrimonial))
                             FROM mat.MPT65700 p657          
                             LEFT JOIN mat.MPT81000 p810 ON p810.idpontfatorinfluencia = p657.idestadocsv 
                             INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p657.idclspatrimonial       
@@ -120,7 +121,7 @@ def bens():
                                                     WHEN 'T' THEN 'Transferido'        
                                                     WHEN 'E' THEN 'Estornado'        
                                                 END,
-                                 cpl_ant = p050.dcclspatrimonial
+                                 cpl_ant = rtrim(upper(p050.dcclspatrimonial))
                             FROM mat.MPT80100 p801        
                             LEFT JOIN mat.MPT81000 p810 ON p810.idpontfatorinfluencia = p801.idestadocsv   
                             INNER JOIN mat.MPT05000 p050 ON p050.idclspatrimonial      = p801.idclspatrimonial       
@@ -157,8 +158,9 @@ def bens():
                                             codigo_bai_pat,
                                             dtpag_pat,
                                             nota_pat,
-                                            codigo_ant_pat)
-                            values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                                            codigo_ant_pat,
+                                            cpl_ant)
+                            values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                           ''')
     
     cadsit = cur_fdb.execute('select descricao_sit, codigo_sit from pt_cadsit').fetchallmap()
@@ -191,8 +193,9 @@ def bens():
         codigo_bai_pat = 2 if dtpag_pat else None
         nota_pat = row['nota_pat']
         codigo_ant_pat = row['codigo_pat']
+        cpl_ant = row['cpl_ant']
         cur_fdb.execute(insert,(codigo_pat, empresa_pat, codigo_gru_pat, chapa_pat, codigo_cpl_pat, codigo_set_pat, codigo_set_atu_pat, 
                                 orig_pat, codigo_tip_pat, codigo_sit_pat, discr_pat, obs_pat, datae_pat, dtlan_pat, valaqu_pat, valatu_pat, 
-                                codigo_for_pat, percenqtd_pat, dae_pat, valres_pat, percentemp_pat, codigo_bai_pat, dtpag_pat, nota_pat, codigo_ant_pat))
-    cur_fdb.execute('UPDATE pt_cadpat a SET a.CODIGO_CPL_PAT = (SELECT b.codigo_tce_tip FROM pt_cadtip b WHERE b.codigo_tip = a.CODIGO_TIP_PAT AND b.codigo_tce_tip IS NOT null)')
+                                codigo_for_pat, percenqtd_pat, dae_pat, valres_pat, percentemp_pat, codigo_bai_pat, dtpag_pat, nota_pat, codigo_ant_pat, cpl_ant))
+    cur_fdb.execute("""UPDATE pt_cadpat a SET a.CODIGO_CPL_PAT = (SELECT b.balco FROM CONPLA_TCE b WHERE a.cpl_ant = REPLACE(trim(b.titco), '(P)','') AND b.balco STARTING '123')""")
     commit()
