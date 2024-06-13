@@ -1,4 +1,4 @@
-from conexao import cur_fdb, cur_sql, fetchallmap, commit
+from conexao import *
 from tqdm import tqdm
 
 from modulos.tools import *

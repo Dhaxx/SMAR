@@ -248,3 +248,81 @@ def depreciacoes():
         except:
             continue
     commit()
+
+def transferencias():
+    # cur_fdb.execute("delete from pt_movbem where tipo_mov = 'T'")
+    cria_campo('alter table pt_movbem add codigo_set_ant integer')
+    cria_campo('alter table pt_movbem add origem_smar varchar(19)')
+    cria_campo('alter table pt_movbem add destino_smar varchar(19)')
+
+    consulta = fetchallmap('''select
+                                    d.idpatrimonio codigo_pat_mov,
+                                    c.UnidOrc origem,
+                                    b.unidOrc destino,
+                                    a.cmpdta,
+                                    a.idtransferencia
+                                from
+                                    mat.MPT70200 a
+                                join mat.UnidOrcamentariaW b on
+                                    a.Idatual5 = b.idNivel5
+                                join mat.UnidOrcamentariaW c on
+                                    a.Idnivel5 = c.idNivel5
+                                join mat.MPT70300 d on
+                                    a.idtransferencia = d.idtransferencia
+                                order by
+                                    cmpdta''')
+    
+    insert = cur_fdb.prep('''
+                            INSERT INTO
+                                pt_movbem (codigo_mov,
+                                empresa_mov,
+                                codigo_pat_mov,
+                                data_mov,
+                                tipo_mov,
+                                codigo_cpl_mov,
+                                codigo_set_mov,
+                                valor_mov,
+                                historico_mov,
+                                lote_mov,
+                                percentual_mov,
+                                depreciacao_mov,
+                                codigo_set_ant,
+                                destino_smar,
+                                origem_smar)
+                            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                         ''')
+    
+    codigo_mov = cur_fdb.execute('SELECT COALESCE(MAX(CODIGO_MOV), 0) FROM PT_MOVBEM').fetchone()[0]
+
+    aux1 = cur_fdb.execute('select codigo_set, pkant from pt_cadpats').fetchall()
+    centros = {}
+    for row in aux1:
+        centros[row[1]] = row[0]
+
+    aux2 = cur_fdb.execute('select codigo_pat, codigo_ant_pat from pt_cadpat').fetchallmap()
+    codigos = {}
+    for row in aux2:
+        codigos[row['codigo_ant_pat']] = row['codigo_pat']
+
+    
+    conexao_fdb.begin()
+    for row in tqdm(consulta, desc='Inserindo Transferências:'):
+        codigo_mov += 1
+        empresa_mov = EMPRESA
+        codigo_pat_mov = codigos.get(row['codigo_pat_mov'], 0)
+        data_mov = row['cmpdta']
+        tipo_mov = 'T'
+        codigo_cpl_mov = None
+        codigo_set_mov = centros.get(row['destino'], 0)
+        valor_mov = 0
+        historico_mov = 'TRANSFERÊNCIA - ' + str(row['idtransferencia'])
+        lote_mov = None
+        percentual_mov = None
+        depreciacao_mov = 'N'
+        codigo_set_ant = centros.get(row['origem'], 0)
+        destino_smar = row['destino']
+        origem_smar = row['origem']
+
+        cur_fdb.execute(insert, (codigo_mov, empresa_mov, codigo_pat_mov, data_mov, tipo_mov, codigo_cpl_mov, codigo_set_mov, valor_mov, historico_mov,
+                                 lote_mov, percentual_mov, depreciacao_mov, codigo_set_ant, destino_smar, origem_smar))
+    commit()

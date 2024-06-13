@@ -57,9 +57,10 @@ def main():
     # patrimonio.cadastro.bens()
     # patrimonio.movimentacoes.aquisicao()
     # patrimonio.movimentacoes.baixas()
-    patrimonio.movimentacoes.depreciacoes()
+    # patrimonio.movimentacoes.depreciacoes()
+    patrimonio.movimentacoes.transferencias()
     
-#### AJUSTES #####
+##### AJUSTES #####
     # tools.aditivos_contratos()
     # tools.insere_cadpro_cadped()
     # tools.insere_crc()
@@ -67,6 +68,8 @@ def main():
     # tools.datas_cadlic()
     # tools.ajusta_descritivo_cotacoes()
     # tools.vincula_socio_fornecedor()
+    # tools.imoveis_info()
+    # tools.setores_faltantes()
 
 if __name__ == '__main__':
     main()
