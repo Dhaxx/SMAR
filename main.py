@@ -58,7 +58,7 @@ def main():
     # patrimonio.movimentacoes.aquisicao()
     # patrimonio.movimentacoes.baixas()
     # patrimonio.movimentacoes.depreciacoes()
-    patrimonio.movimentacoes.transferencias()
+    # patrimonio.movimentacoes.transferencias()
     
 ##### AJUSTES #####
     # tools.aditivos_contratos()
@@ -69,7 +69,7 @@ def main():
     # tools.ajusta_descritivo_cotacoes()
     # tools.vincula_socio_fornecedor()
     # tools.imoveis_info()
-    # tools.setores_faltantes()
+    tools.setores_faltantes()
 
 if __name__ == '__main__':
     main()
